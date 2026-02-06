@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Collaborative Whiteboard</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body style="margin:0; overflow:hidden;">
+<canvas id="board"></canvas>
+
+<button onclick="clearBoard()" 
+style="position:fixed;top:10px;left:10px;z-index:10;">
+Clear
+</button>
+
+<script>
+const socket = io();
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+ctx.lineCap = "round";
+
+let drawing = false;
+let prevX = 0;
+let prevY = 0;
+
+function drawLine(x0, y0, x1, y1, size) {
+  ctx.lineWidth = size;
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
+}
+
+canvas.addEventListener("pointerdown", e => {
+  drawing = true;
+  prevX = e.clientX;
+  prevY = e.clientY;
+});
+
+canvas.addEventListener("pointerup", () => drawing = false);
+canvas.addEventListener("pointerleave", () => drawing = false);
+
+canvas.addEventListener("pointermove", e => {
+  if (!drawing) return;
+
+  const pressure = e.pressure || 0.5;
+  const size = pressure * 10;
+
+  drawLine(prevX, prevY, e.clientX, e.clientY, size);
+
+  socket.emit("draw", {
+    x0: prevX,
+    y0: prevY,
+    x1: e.clientX,
+    y1: e.clientY,
+    size
+  });
+
+  prevX = e.clientX;
+  prevY = e.clientY;
+});
+
+socket.on("draw", data => {
+  drawLine(data.x0, data.y0, data.x1, data.y1, data.size);
+});
+
+function clearBoard() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  socket.emit("clear");
+}
+
+socket.on("clear", () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>
