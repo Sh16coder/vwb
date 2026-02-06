@@ -1,7 +1,6 @@
 {
   "name": "whiteboard",
   "version": "1.0.0",
-  "description": "Collaborative whiteboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
