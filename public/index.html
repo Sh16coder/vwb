@@ -6,6 +6,7 @@
 </head>
 
 <body style="margin:0; overflow:hidden;">
+  <body style="margin:0; overflow:hidden; touch-action:none;">
 <canvas id="board"></canvas>
 
 <button onclick="clearBoard()" 
@@ -23,23 +24,29 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 ctx.lineCap = "round";
+ctx.lineJoin = "round";
 
 let drawing = false;
-let prevX = 0;
-let prevY = 0;
+let lastX = 0;
+let lastY = 0;
 
-function drawLine(x0, y0, x1, y1, size) {
+function drawSmoothLine(x0, y0, x1, y1, size) {
   ctx.lineWidth = size;
+
   ctx.beginPath();
   ctx.moveTo(x0, y0);
-  ctx.lineTo(x1, y1);
+
+  const midX = (x0 + x1) / 2;
+  const midY = (y0 + y1) / 2;
+
+  ctx.quadraticCurveTo(x0, y0, midX, midY);
   ctx.stroke();
 }
 
 canvas.addEventListener("pointerdown", e => {
   drawing = true;
-  prevX = e.clientX;
-  prevY = e.clientY;
+  lastX = e.clientX;
+  lastY = e.clientY;
 });
 
 canvas.addEventListener("pointerup", () => drawing = false);
@@ -48,25 +55,25 @@ canvas.addEventListener("pointerleave", () => drawing = false);
 canvas.addEventListener("pointermove", e => {
   if (!drawing) return;
 
-  const pressure = e.pressure || 0.5;
-  const size = pressure * 10;
+  const pressure = e.pressure || 0.6;
+  const size = pressure * 12;
 
-  drawLine(prevX, prevY, e.clientX, e.clientY, size);
+  drawSmoothLine(lastX, lastY, e.clientX, e.clientY, size);
 
   socket.emit("draw", {
-    x0: prevX,
-    y0: prevY,
+    x0: lastX,
+    y0: lastY,
     x1: e.clientX,
     y1: e.clientY,
     size
   });
 
-  prevX = e.clientX;
-  prevY = e.clientY;
+  lastX = e.clientX;
+  lastY = e.clientY;
 });
 
 socket.on("draw", data => {
-  drawLine(data.x0, data.y0, data.x1, data.y1, data.size);
+  drawSmoothLine(data.x0, data.y0, data.x1, data.y1, data.size);
 });
 
 function clearBoard() {
@@ -77,11 +84,7 @@ function clearBoard() {
 socket.on("clear", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
-
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
 </script>
+
 </body>
 </html>
