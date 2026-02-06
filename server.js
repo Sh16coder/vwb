@@ -8,24 +8,36 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
-  console.log("User connected");
+const notebooks = {};
 
-  socket.on("draw", (data) => {
-    socket.broadcast.emit("draw", data);
+io.on("connection", socket => {
+  socket.on("joinBoard", ({ notebookId, boardId }) => {
+    socket.join(boardId);
+    socket.boardId = boardId;
+
+    notebooks[notebookId] ||= {};
+    notebooks[notebookId][boardId] ||= [];
+
+    socket.emit("loadBoard", notebooks[notebookId][boardId]);
   });
 
-  socket.on("clear", () => {
-    socket.broadcast.emit("clear");
+  socket.on("draw", data => {
+    const { notebookId, boardId, stroke } = data;
+    notebooks[notebookId][boardId].push(stroke);
+    socket.to(boardId).emit("draw", stroke);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
+  socket.on("clear", boardId => {
+    socket.to(boardId).emit("clear");
+  });
+
+  socket.on("cursor", data => {
+    socket.to(socket.boardId).emit("cursor", {
+      ...data,
+      id: socket.id
+    });
   });
 });
 
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log("Server running...");
-});
+server.listen(PORT, () => console.log("Running"));
