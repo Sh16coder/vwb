@@ -1,93 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Collaborative Whiteboard</title>
+  <title>Whiteboard</title>
+  <link rel="stylesheet" href="style.css">
   <script src="/socket.io/socket.io.js"></script>
 </head>
+<body>
 
-<body style="margin:0; overflow:hidden;">
-  <body style="margin:0; overflow:hidden; touch-action:none;">
+<div id="toolbar">
+  <button onclick="setTool('pen')">Pen</button>
+  <button onclick="setTool('marker')">Marker</button>
+  <button onclick="setTool('eraser')">Eraser</button>
+  <button onclick="setShape('rect')">Rect</button>
+  <button onclick="setShape('circle')">Circle</button>
+  <button onclick="undo()">Undo</button>
+  <button onclick="clearBoard()">Clear</button>
+  <button onclick="setBg('grid')">Grid</button>
+  <button onclick="setBg('dots')">Dots</button>
+</div>
+
 <canvas id="board"></canvas>
 
-<button onclick="clearBoard()" 
-style="position:fixed;top:10px;left:10px;z-index:10;">
-Clear
-</button>
-
-<script>
-  const boardId = location.pathname.split("/").pop() || "default";
-socket.emit("joinBoard", boardId);
-  
-const socket = io();
-
-const canvas = document.getElementById("board");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-ctx.lineCap = "round";
-ctx.lineJoin = "round";
-
-let drawing = false;
-let lastX = 0;
-let lastY = 0;
-
-function drawSmoothLine(x0, y0, x1, y1, size) {
-  ctx.lineWidth = size;
-
-  ctx.beginPath();
-  ctx.moveTo(x0, y0);
-
-  const midX = (x0 + x1) / 2;
-  const midY = (y0 + y1) / 2;
-
-  ctx.quadraticCurveTo(x0, y0, midX, midY);
-  ctx.stroke();
-}
-
-canvas.addEventListener("pointerdown", e => {
-  drawing = true;
-  lastX = e.clientX;
-  lastY = e.clientY;
-});
-
-canvas.addEventListener("pointerup", () => drawing = false);
-canvas.addEventListener("pointerleave", () => drawing = false);
-
-canvas.addEventListener("pointermove", e => {
-  if (!drawing) return;
-
-  const pressure = e.pressure || 0.6;
-  const size = pressure * 12;
-
-  drawSmoothLine(lastX, lastY, e.clientX, e.clientY, size);
-
-  socket.emit("draw", {
-    x0: lastX,
-    y0: lastY,
-    x1: e.clientX,
-    y1: e.clientY,
-    size
-  });
-
-  lastX = e.clientX;
-  lastY = e.clientY;
-});
-
-socket.on("draw", data => {
-  drawSmoothLine(data.x0, data.y0, data.x1, data.y1, data.size);
-});
-
-function clearBoard() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  socket.emit("clear");
-}
-
-socket.on("clear", () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-});
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
