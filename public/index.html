@@ -15,6 +15,9 @@ Clear
 </button>
 
 <script>
+  const boardId = location.pathname.split("/").pop() || "default";
+socket.emit("joinBoard", boardId);
+  
 const socket = io();
 
 const canvas = document.getElementById("board");
